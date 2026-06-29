@@ -16,25 +16,42 @@ else {
     notesarr = JSON.parse(savedNotes)
 }
 displayNotes(notesarr)
-
-function addNote() {
-    //read the input in console
-    console.log(notesinput.value)
-    //read the input 
-    let text = notesinput.value
-    //create note obj
-    let note = {
-        text: text
-    }
-    //add it to array
-    notesarr.push(note)
-    console.log(notesarr)
-// add it to local storage
+// write this once, call it everywhere
+function saveToStorage() {
     localStorage.setItem("notesarr", JSON.stringify(notesarr))
-    // diplay the notes
+}
+function changeColor(id, color) {
+    let note = notesarr.find(note => note.id === id)
+    note.color = color
+    saveToStorage()
     displayNotes(notesarr)
-    // clear the input
+}
+notesinput.addEventListener("keydown", function(e) {
+    // Ctrl+Enter or Cmd+Enter (Mac) triggers add/save
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        addbtn.click()
+    }
+})
+function addNote() {
+    // .trim() removes accidental spaces — "   " won't be saved as a note
+    let text = notesinput.value.trim()
+
+    // guard clause — don't add empty notes
+    if (text === "") return
+
+    let note = {
+        id: Date.now(),
+        text: text,
+        pinned: false,
+        color: "purple",
+        createdAt: new Date().toLocaleString()
+    }
+
+    notesarr.push(note)
+    saveToStorage()   // we'll make this a reusable function (explained below)
+    displayNotes(notesarr)
     notesinput.value = ""
+    updateCharCount() // resets counter after adding
 }
 // run function addbtn if editmode then if or else when editmode is off
 addbtn.addEventListener("click", function () {
@@ -50,69 +67,94 @@ addbtn.addEventListener("click", function () {
 
 
 function displayNotes(notes) {
-  
-    // Clear the notes
     display.innerHTML = ""
-    // if there is no previous stored notes website is opened first time then run this
+
     if (notes.length === 0) {
-        let emptystate = `
-        <div class=empty-state><h2>No notes yet</h2>
-        <p>Add your first note!</p></div>`
-        display.innerHTML = emptystate;
+        display.innerHTML = `
+            <div class="empty-state">
+                <h2>No notes yet</h2>
+                <p>Add your first note above!</p>
+            </div>`
+        return
     }
-    // if there were notes previously then run this
-    else {
-        // loop through notes
-        for (let i = 0; i < notes.length; i++) {
 
-            // create note with delete button
-          let html = `<div class="notescontainer">
-          <p>${notes[i].text}</p>
-          <button class="deleteBtn" onclick="deleteNote(${i})">Delete</button>
-          <button class="editBtn" onclick="editNote(${i})">Edit</button>
-          </div>`
+    // pinned notes always appear first
+    let sorted = [...notes].sort((a, b) => b.pinned - a.pinned)
 
-            // add notes to the display
-            display.innerHTML += html
-        }
-    }
+    sorted.forEach(note => {
+        let div = document.createElement("div")
+        div.className = `notescontainer color-${note.color}`
+
+        // animation — each card fades in smoothly
+        div.style.animation = "fadeIn 0.25s ease"
+
+        div.innerHTML = `
+            <div class="note-top">
+                <span class="timestamp">${note.createdAt}</span>
+                <button class="pinBtn" onclick="togglePin(${note.id})" title="Pin note">
+                    ${note.pinned ? "📌" : "☆"}
+                </button>
+            </div>
+            <p class="note-text">${note.text}</p>
+            <div class="color-picker">
+                <span onclick="changeColor(${note.id}, 'purple')" class="dot dot-purple"></span>
+                <span onclick="changeColor(${note.id}, 'teal')"   class="dot dot-teal"></span>
+                <span onclick="changeColor(${note.id}, 'coral')"  class="dot dot-coral"></span>
+            </div>
+            <div class="note-actions">
+                <button class="deleteBtn" onclick="deleteNote(${note.id})">Delete</button>
+                <button class="editBtn"   onclick="editNote(${note.id})">Edit</button>
+            </div>
+        `
+        display.appendChild(div)
+    })
 }
 
-function deleteNote(index) {
-    // remove the object from array
-    notesarr.splice(index, 1)
-    // update the local storage
-    localStorage.setItem("notesarr", JSON.stringify(notesarr))
-    // call display function 
+function deleteNote(id) {
+    // filter KEEPS every note whose id does NOT match
+    // the one note whose id matches gets removed
+    notesarr = notesarr.filter(note => note.id !== id)
+    saveToStorage()
     displayNotes(notesarr)
 }
-function editNote(i) {
-    // change edit mode to on 
-    editmode = true;
-    // change the add btn to save btn
-    addbtn.textContent = "Save";
-    // store index of the object being edited
-    editingIndex = i;
-    // diplay the text into input box
-    notesinput.value = notesarr[editingIndex].text;
+
+function editNote(id) {
+    editmode = true
+    addbtn.textContent = "Save"
+    // find the exact note object by id
+    editingIndex = notesarr.findIndex(note => note.id === id)
+    notesinput.value = notesarr[editingIndex].text
+    notesinput.focus() // moves cursor to input automatically — small but smooth
 }
 
 function savenote() {
-    // save the changes made inside input box
-    notesarr[editingIndex].text = notesinput.value
-    // update local storage
-    localStorage.setItem("notesarr", JSON.stringify(notesarr))
-    // display updated array
+    let text = notesinput.value.trim()
+    if (text === "") return  // don't save empty edits
+
+    notesarr[editingIndex].text = text
+    saveToStorage()
     displayNotes(notesarr)
-    // clear the input
     notesinput.value = ""
-    // clear the index
     editingIndex = null
-    // switch back to edit mode off
-    editmode = false;
-    // make save btn add btn
-    addbtn.textContent = "Add";
+    editmode = false
+    addbtn.textContent = "Add"
 }
+function togglePin(id) {
+    // find the note and flip its pinned value — true becomes false, false becomes true
+    let note = notesarr.find(note => note.id === id)
+    note.pinned = !note.pinned
+    saveToStorage()
+    displayNotes(notesarr)
+}
+function updateCharCount() {
+    let count = notesinput.value.length
+    charCount.textContent = `${count} / 200`
+    // warn user when getting close to limit
+    charCount.style.color = count > 180 ? "#D85A30" : "#888780"
+}
+
+notesinput.addEventListener("input", updateCharCount)
+notesinput.setAttribute("maxlength", "200") // hard limit in the input itself
 function search() {
     let searchedQuery = searchInput.value.trim()
     

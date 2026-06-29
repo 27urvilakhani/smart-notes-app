@@ -3,15 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Smart Notes</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+    <div class="app-header">
+        <h1>📝 Smart Notes</h1>
+        <p>Your ideas, always within reach</p>
+    </div>
+   
+    <section id="searchbar">
+        <input type="text" name="" id="search">
+        <button id="searchBtn">Search</button>
+        <div id="displayresult"></div>
+    </section>
     <section id="notes">
         <input type="text" name="" id="note">
         <button id="addbtn">Add</button>
-            <div id="display"></div>
-          
-        
+        <span id="charCount">0 / 200</span>
+        <div id="display"></div>
     </section>
     <script src="script.js"></script>
 </body>
