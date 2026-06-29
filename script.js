@@ -173,4 +173,4 @@ function search() {
     displayNotes(filterednotesArr)
 }
 searchBtn.addEventListener("click", search)
-searchBtn.addEventListener("input",searchInput)
+searchBtn.addEventListener("input",searchInput)     
